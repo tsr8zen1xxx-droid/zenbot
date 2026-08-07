@@ -26,16 +26,23 @@ if "uploaded_image" not in st.session_state:
 
 # --- БОКОВАЯ ПАНЕЛЬ (SIDEBAR) ---
 with st.sidebar:
-    st.title("⚙️ Настройки ZenAi")
-    st.write("Персональный веб-бот от Зеникса (Ильхана)")
+    st.title("🤖 ZenAi Studio")
+    st.caption("Создатель: Зеникс (Ильхан)")
     
     st.markdown("---")
     
-    # 🎙️ 1. ГОЛОСОВОЙ ВВОД (SPEECH TO TEXT)
+    # 🎨 1. КАСТОМИЗАЦИЯ ИНТЕРФЕЙСА
+    st.subheader("🎨 Тема оформления")
+    selected_theme = st.selectbox(
+        "Выберите стиль:",
+        ["Dark Zen", "Cyberpunk", "Light Minimal"],
+        key="theme_selector"
+    )
+
+    st.markdown("---")
+
+    # 🎙️ 2. ГОЛОСОВОЙ ВВОД
     st.subheader("🎙️ Голосовой ввод")
-    st.write("Нажмите кнопку и говорите:")
-    
-    # Компонент микрофона с поддержкой русского языка
     voice_prompt = speech_to_text(
         language='ru',
         start_prompt="🔴 Начать запись",
@@ -45,7 +52,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 🗂️ 2. УПРАВЛЕНИЕ ИСТОРИЕЙ ЧАТОВ
+    # 🗂️ 3. ИСТОРИЯ ЧАТОВ
     st.subheader("💬 История чатов")
     
     if st.button("➕ Новый чат", use_container_width=True):
@@ -56,6 +63,10 @@ with st.sidebar:
         st.rerun()
 
     chat_list = list(st.session_state.chats.keys())
+    
+    if st.session_state.current_chat not in chat_list:
+        st.session_state.current_chat = chat_list[0]
+
     selected_chat = st.selectbox(
         "Выберите диалог:",
         chat_list,
@@ -66,7 +77,7 @@ with st.sidebar:
     if st.button("🗑️ Удалить текущий чат", use_container_width=True):
         if len(st.session_state.chats) > 1:
             del st.session_state.chats[st.session_state.current_chat]
-            st.session_state.current_chat = list(st.session_state.keys())[0]
+            st.session_state.current_chat = list(st.session_state.chats.keys())[0]
             st.rerun()
         else:
             st.session_state.chats[st.session_state.current_chat] = []
@@ -75,10 +86,10 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 📷 3. ЗАГРУЗКА ФОТО
+    # 📷 4. ЗАГРУЗКА ФОТО
     st.subheader("🖼️ Прикрепить фото")
     uploaded_file = st.file_uploader(
-        "Загрузите изображение для анализа:",
+        "Загрузите фото:",
         type=["png", "jpg", "jpeg", "webp"]
     )
     
@@ -91,7 +102,7 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 🎭 4. РЕЖИМЫ И МОДЕЛИ
+    # 🎭 5. РЕЖИМЫ И МОДЕЛИ
     st.subheader("🎭 Режим работы")
     mode = st.selectbox(
         "Выберите роль бота:",
@@ -100,20 +111,19 @@ with st.sidebar:
     
     base_identity = (
         "[ИНСТРУКЦИЯ ИИ: Твое имя ZenAi. Ты — персональный ИИ-ассистент, созданный разработчиком Зениксом (Ильханом). "
-        "Твоя главная цель и назначение — помогать людям в любых задачах. "
+        "Твоя главная цель — помогать людям в любых задачах. "
         "Ни в коем случае НЕ называй себя Gemini, ChatGPT, Copilot или Google/OpenAI. "
-        "На любые вопросы о том, кто ты, кто твой создатель или зачем ты нужен — отвечай строго, "
+        "На любые вопросы о том, кто ты или кто твой создатель — отвечай строго, "
         "что ты ZenAi, создан Зениксом (Ильханом) для помощи пользователям!]"
     )
 
     system_prompts = {
-        "🤖 Обычный ассистент": f"{base_identity} Отвечай вежливо, понятным языком и без лишней воды.",
-        "💻 Кодер / Разработчик": f"{base_identity} Пиши чистый, оптимизированный код с комментариями.",
+        "🤖 Обычный ассистент": f"{base_identity} Отвечай вежливо и понятно.",
+        "💻 Кодер / Разработчик": f"{base_identity} Пиши чистый код с комментариями.",
         "🎨 Креативный дизайнер": f"{base_identity} Генерируй идеи, 3D-концепты и описания дизайнов.",
         "🎮 Игровой эксперт": f"{base_identity} Помогай с геймдевом, Unity, модингом и механиками."
     }
 
-    st.subheader("⚡ Модель AI")
     selected_model = st.selectbox(
         "Выберите 'мозг' бота:",
         ["gpt-4o", "gpt-3.5-turbo", "gemini"]
@@ -121,10 +131,10 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # 🎨 5. ГЕНЕРАТОР КАРТИНОК
-    st.subheader("✨ Генератор изображений")
+    # 🎨 6. ГЕНЕРАТОР КАРТИНОК
+    st.subheader("✨ Генерация изображений")
     image_prompt = st.text_input("Опишите картинку (на англ.):", placeholder="Cyberpunk neon city...")
-    if st.button("🎨 Сгенерировать картинку", use_container_width=True):
+    if st.button("🎨 Сгенерировать", use_container_width=True):
         if image_prompt:
             with st.spinner("Рисую..."):
                 clean_prompt = image_prompt.replace(" ", "%20")
@@ -134,35 +144,56 @@ with st.sidebar:
             st.warning("Введите описание картинки!")
 
 
-# --- ОСНОВНОЙ ИНТЕРФЕЙС ---
+# --- ПРИМЕНЕНИЕ СТИЛЕЙ СРАЗУ ПОСЛЕ ВЫБОРА ТЕМЫ ---
+if selected_theme == "Cyberpunk":
+    st.markdown("""
+        <style>
+        .stApp { background-color: #0d0221 !important; color: #00f0ff !important; }
+        [data-testid="stSidebar"] { background-color: #1a0840 !important; }
+        </style>
+    """, unsafe_allow_html=True)
+elif selected_theme == "Dark Zen":
+    st.markdown("""
+        <style>
+        .stApp { background-color: #0e1117 !important; color: #ffffff !important; }
+        [data-testid="stSidebar"] { background-color: #262730 !important; }
+        </style>
+    """, unsafe_allow_html=True)
+elif selected_theme == "Light Minimal":
+    st.markdown("""
+        <style>
+        .stApp { background-color: #f8f9fa !important; color: #212529 !important; }
+        [data-testid="stSidebar"] { background-color: #e9ecef !important; }
+        </style>
+    """, unsafe_allow_html=True)
+
+
+# --- ОСНОВНОЙ ИНТЕРФЕЙС И АВАТАРКИ ---
 st.title("🤖 ZenAi")
 st.caption(f"Активный диалог: **{st.session_state.current_chat}** | Создан Зениксом (Ильханом) для помощи людям")
 
 current_messages = st.session_state.chats[st.session_state.current_chat]
 
-# Отображение истории чата
+# Отображение истории
 for message in current_messages:
-    with st.chat_message(message["role"]):
+    avatar_icon = "👤" if message["role"] == "user" else "🤖"
+    with st.chat_message(message["role"], avatar=avatar_icon):
         st.markdown(message["content"])
 
-# Определяем, откуда пришел ввод: из клавиатурного поля или микрофона
 user_input = None
 
-# Текстовый ввод
 if text_prompt := st.chat_input("Напиши или надиктуй сообщение..."):
     user_input = text_prompt
-
-# Голосовой ввод (если кнопка распознала речь)
 elif voice_prompt:
     user_input = voice_prompt
 
 # Обработка запроса
 if user_input:
     current_messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.markdown(user_input)
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar="🤖"):
         formatted_messages = [
             {"role": "system", "content": system_prompts[mode]}
         ]
