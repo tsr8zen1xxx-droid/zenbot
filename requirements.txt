@@ -2,3 +2,4 @@ streamlit
 g4f
 pillow
 requests
+streamlit-mic-recorder
