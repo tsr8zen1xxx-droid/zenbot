@@ -1,6 +1,8 @@
 import streamlit as st
 from g4f.client import Client
 from PIL import Image
+import base64
+import io
 from streamlit_mic_recorder import speech_to_text
 
 # Настройка страницы
@@ -96,7 +98,11 @@ with st.sidebar:
     if uploaded_file:
         image = Image.open(uploaded_file)
         st.image(image, caption="Загруженное фото", use_container_width=True)
-        st.session_state.uploaded_image = image
+        
+        # Конвертация изображения в байты для отправки в нейросеть
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        st.session_state.uploaded_image = buffered.getvalue()
     else:
         st.session_state.uploaded_image = None
 
@@ -126,7 +132,7 @@ with st.sidebar:
 
     selected_model = st.selectbox(
         "Выберите 'мозг' бота:",
-        ["gpt-4o", "gpt-3.5-turbo", "gemini"]
+        ["gpt-4o", "gemini", "gpt-3.5-turbo"]
     )
 
     st.markdown("---")
@@ -201,14 +207,21 @@ if user_input:
         for idx, msg in enumerate(current_messages):
             if idx == len(current_messages) - 1:
                 injected_content = f"{system_prompts[mode]}\n\nВопрос пользователя: {msg['content']}"
-                formatted_messages.append({"role": "user", "content": injected_content})
+                
+                # Если загружено изображение — передаем его напрямую в запрос!
+                if st.session_state.uploaded_image:
+                    formatted_messages.append({
+                        "role": "user",
+                        "content": injected_content,
+                        "image": st.session_state.uploaded_image
+                    })
+                else:
+                    formatted_messages.append({"role": "user", "content": injected_content})
             else:
                 formatted_messages.append({"role": msg["role"], "content": msg["content"]})
-        
-        if st.session_state.uploaded_image:
-            st.info("🖼️ Изображение прикреплено к запросу.")
 
         try:
+            # Для работы с фото лучше всего подходят gpt-4o или gemini
             response_stream = client.chat.completions.create(
                 model=selected_model,
                 messages=formatted_messages,
@@ -226,4 +239,4 @@ if user_input:
             current_messages.append({"role": "assistant", "content": full_response})
 
         except Exception as e:
-            st.error(f"Ошибка при связи с сервером: {e}")
+            st.error(f"Ошибка при анализе (попробуйте переключить модель на gpt-4o): {e}")
